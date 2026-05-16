@@ -1,0 +1,8 @@
+{
+  "name": "GhostLink",
+  "description": "A premium AI-native collaboration platform with a cinematic glassmorphic UI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

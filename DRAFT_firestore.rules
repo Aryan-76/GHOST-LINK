@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    function isAdmin() {
+      // Look up in a trusted admins collection
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // 1. User Rules
+    function isValidUser(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.email is string && data.email.size() <= 100 &&
+             data.role in ['admin', 'user'] &&
+             data.keys().hasAll(['userId', 'email', 'role']) &&
+             data.keys().size() >= 3;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin(); // No blanket listing
+      allow create: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming()) && incoming().role == 'user'; // Users can't create themselves as admin
+      allow update: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'status', 'avatarUrl', 'updatedAt']) &&
+                    incoming().updatedAt == request.time;
+    }
+
+    // 2. Project Rules
+    function isValidProject(data) {
+      return data.title is string && data.title.size() <= 100 &&
+             data.status in ['active', 'planned', 'archived', 'completed'] &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             data.members is list && data.members.size() <= 20 &&
+             data.keys().hasAll(['title', 'status', 'ownerId', 'members']) &&
+             data.keys().size() >= 4;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isSignedIn() && (request.auth.uid == existing().ownerId || request.auth.uid in existing().members || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || request.auth.uid in resource.data.members);
+      
+      allow create: if isEmailVerified() && isValidId(projectId) && isValidProject(incoming()) && 
+                    incoming().createdAt == request.time;
+      
+      allow update: if isSignedIn() && isValidProject(incoming()) && (
+        // Action: General Edit
+        (existing().status != 'completed' && existing().status != 'archived' && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'members', 'status', 'updatedAt'])) ||
+        // Action: Admin override
+        isAdmin()
+      ) && incoming().updatedAt == request.time && incoming().ownerId == existing().ownerId;
+
+      allow delete: if isAdmin() || (isSignedIn() && existing().ownerId == request.auth.uid);
+
+      // Sub-collection: Activities
+      match /activities/{activityId} {
+        allow read: if isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid || 
+                                       request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.members);
+        allow create: if isEmailVerified() && isValidId(activityId) &&
+                      incoming().userId == request.auth.uid &&
+                      incoming().timestamp == request.time &&
+                      incoming().type in ['edit', 'comment', 'complete', 'alert'] &&
+                      exists(/databases/$(database)/documents/projects/$(projectId));
+      }
+    }
+
+    // 3. Chat Rules
+    function isValidMessage(data) {
+      return data.text is string && data.text.size() <= 2000 &&
+             data.userId == request.auth.uid &&
+             data.timestamp == request.time;
+    }
+
+    match /chat/messages/entries/{messageId} {
+      allow list: if isSignedIn(); // Global chat access check? Usually logic-gated.
+      allow get: if isSignedIn();
+      allow create: if isEmailVerified() && isValidId(messageId) && isValidMessage(incoming());
+    }
+  }
+}

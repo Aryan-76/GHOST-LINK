@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private user identity data.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "status": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "role"]
+    },
+    "Project": {
+      "title": "Collaboration Project",
+      "description": "A shared workspace for engineering tasks.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "planned", "archived", "completed"] },
+        "ownerId": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "status", "ownerId", "members"]
+    },
+    "Activity": {
+      "title": "Network Activity",
+      "description": "Log of events within the workspace.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["edit", "comment", "complete", "alert"] },
+        "userId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "userId", "timestamp"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "Real-time communication entries.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "userId": { "type": "string" },
+        "userDisplayName": { "type": "string" },
+        "isAI": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "userId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Identity node storage."
+    },
+    "projects/{projectId}": {
+      "schema": "Project",
+      "description": "Collaboration cluster units."
+    },
+    "projects/{projectId}/activities/{activityId}": {
+      "schema": "Activity",
+      "description": "Relational event logs."
+    },
+    "chat/messages/entries/{messageId}": {
+      "schema": "Message",
+      "description": "Global communication stream."
+    }
+  }
+}
