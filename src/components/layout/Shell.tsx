@@ -9,7 +9,8 @@ import {
   Command,
   Network,
   Search,
-  X
+  X,
+  Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore } from '../../store/authStore';
@@ -19,10 +20,11 @@ interface SidebarItemProps {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
+  onClick?: () => void;
 }
 
-const SidebarItem = ({ to, icon, label, active }: SidebarItemProps) => (
-  <Link to={to} aria-label={`Navigate to ${label}`} aria-current={active ? 'page' : undefined}>
+const SidebarItem = ({ to, icon, label, active, onClick }: SidebarItemProps) => (
+  <Link to={to} aria-label={`Navigate to ${label}`} aria-current={active ? 'page' : undefined} onClick={onClick}>
     <motion.div
       whileHover={{ x: 4 }}
       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
@@ -110,10 +112,10 @@ export const Shell = React.memo(({ children }: { children: React.ReactNode }) =>
   const location = useLocation();
   const { user } = useAuthStore();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAuth = location.pathname === '/auth';
   const isLanding = location.pathname === '/';
-  const isMobileView = location.pathname === '/mobile';
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -126,7 +128,7 @@ export const Shell = React.memo(({ children }: { children: React.ReactNode }) =>
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  if (isAuth || isLanding || isMobileView) return <>{children}</>;
+  if (isAuth || isLanding) return <>{children}</>;
 
   const userInitial = user?.displayName ? user.displayName[0] : (user?.email ? user.email[0] : 'U');
   const currentPageLabel = MENU_ITEMS.find(item => item.to === location.pathname)?.label || 'Workspace';
@@ -136,8 +138,8 @@ export const Shell = React.memo(({ children }: { children: React.ReactNode }) =>
       <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-violet-600/5 blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-cyan-600/5 blur-[100px] pointer-events-none z-0" />
 
-      {/* Sidebar */}
-      <aside className="w-[240px] bg-[#0A0B0E] border-r border-white/5 flex flex-col flex-shrink-0 z-20" aria-label="Main Sidebar">
+      {/* Sidebar - Desktop */}
+      <aside className="hidden lg:flex w-[240px] bg-[#0A0B0E] border-r border-white/5 flex-col flex-shrink-0 z-20" aria-label="Main Sidebar">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-10">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -149,13 +151,14 @@ export const Shell = React.memo(({ children }: { children: React.ReactNode }) =>
           <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-4 ml-2">Platform</div>
           <nav className="space-y-1" aria-label="Main Navigation">
             {MENU_ITEMS.map((item) => (
-              <SidebarItem
-                key={item.to}
-                to={item.to}
-                icon={item.icon}
-                label={item.label}
-                active={location.pathname === item.to}
-              />
+              <React.Fragment key={item.to}>
+                <SidebarItem
+                  to={item.to}
+                  icon={item.icon}
+                  label={item.label}
+                  active={location.pathname === item.to}
+                />
+              </React.Fragment>
             ))}
           </nav>
         </div>
@@ -175,23 +178,94 @@ export const Shell = React.memo(({ children }: { children: React.ReactNode }) =>
         </div>
       </aside>
 
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-[100] lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="absolute top-0 left-0 bottom-0 w-72 bg-[#0A0B0E] border-r border-white/5 flex flex-col"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+                      <Network size={18} className="text-white" />
+                    </div>
+                    <span className="font-semibold text-lg tracking-tight text-white">GhostLink</span>
+                  </div>
+                  <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-zinc-500 hover:text-white transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <nav className="space-y-1">
+                  {MENU_ITEMS.map((item) => (
+                    <React.Fragment key={item.to}>
+                      <SidebarItem
+                        to={item.to}
+                        icon={item.icon}
+                        label={item.label}
+                        active={location.pathname === item.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                      />
+                    </React.Fragment>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="mt-auto p-4 border-t border-white/5">
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-2 py-1">
+                  <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-500 uppercase">
+                    {userInitial}
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="text-xs font-semibold text-white truncate">{user?.displayName || user?.email || 'User'}</div>
+                    <div className="text-[10px] text-zinc-500 font-bold uppercase">Early Access</div>
+                  </div>
+                </Link>
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="h-16 border-b border-white/5 bg-[#020306]/80 backdrop-blur-md flex items-center justify-between px-8" role="banner">
-          <nav className="flex items-center gap-2 text-zinc-500 text-xs font-medium" aria-label="Breadcrumb">
-            <Link to="/workspace" className="hover:text-zinc-300 transition-colors">GhostLink</Link>
-            <span className="opacity-20" aria-hidden="true">/</span>
-            <span className="text-zinc-100 font-medium">{currentPageLabel}</span>
-          </nav>
+        <header className="h-16 border-b border-white/5 bg-[#020306]/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-8" role="banner">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 lg:hidden text-zinc-500 hover:text-white transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <nav className="hidden sm:flex items-center gap-2 text-zinc-500 text-xs font-medium" aria-label="Breadcrumb">
+              <Link to="/workspace" className="hover:text-zinc-300 transition-colors">GhostLink</Link>
+              <span className="opacity-20" aria-hidden="true">/</span>
+              <span className="text-zinc-100 font-medium">{currentPageLabel}</span>
+            </nav>
+          </div>
 
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-lg pl-3 pr-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:border-white/20 transition-all w-52 group"
+            className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:border-white/20 transition-all w-40 sm:w-52 group"
             aria-label="Open search"
           >
             <Search size={12} />
-            <span className="flex-1 text-left">Search...</span>
-            <span className="text-zinc-700 text-[10px] font-mono border border-zinc-800 px-1 rounded group-hover:text-zinc-500 transition-colors">⌘K</span>
+            <span className="flex-1 text-left truncate">Search...</span>
+            <span className="hidden sm:inline text-zinc-700 text-[10px] font-mono border border-zinc-800 px-1 rounded group-hover:text-zinc-500 transition-colors">⌘K</span>
           </button>
         </header>
 

@@ -8,40 +8,7 @@ import {
 import { motion } from 'motion/react';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { Link } from 'react-router-dom';
-
-const ProjectCard = ({ title, status, members, description, active, delay }: any) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className={`bg-[#0A0B0E] border border-white/5 p-6 rounded-2xl transition-all duration-300 group cursor-pointer ${
-      active ? 'border-indigo-500/40' : 'hover:border-white/10'
-    }`}
-  >
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Activity size={14} className={active ? 'text-indigo-400' : 'text-zinc-600'} />
-          <span className={`text-sm font-semibold tracking-tight ${active ? 'text-white' : 'text-zinc-500'}`}>{title}</span>
-        </div>
-        <div className={`w-1.5 h-1.5 rounded-full ${status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-800'}`} />
-      </div>
-
-      <p className="text-xs text-zinc-500 mb-6 leading-relaxed flex-1">{description || 'No description provided.'}</p>
-
-      <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-auto">
-        <div className="flex -space-x-1.5">
-          {members.slice(0, 4).map((p: any, i: number) => (
-            <div key={i} className="w-7 h-7 rounded-sm border border-[#0A0B0E] bg-zinc-800 flex items-center justify-center text-[9px] font-bold text-zinc-500">
-              {p[0]}
-            </div>
-          ))}
-        </div>
-        <ChevronRight size={16} className="text-zinc-700" />
-      </div>
-    </div>
-  </motion.div>
-);
+import { ProjectCard } from '../components/common/ProjectCard';
 
 export default function SpatialThreadView() {
   const { projects, isLoading } = useWorkspace();
@@ -84,7 +51,6 @@ export default function SpatialThreadView() {
               key={project.id}
               {...project}
               delay={0.1 + i * 0.1}
-              active={i === 0}
             />
           ))}
         </div>

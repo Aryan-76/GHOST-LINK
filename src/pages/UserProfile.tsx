@@ -173,15 +173,20 @@ export default function UserProfile() {
                 <p className="text-xs font-semibold text-white">Email Notifications</p>
                 <p className="text-[10px] text-zinc-500 mt-0.5">Receive workspace activity updates</p>
               </div>
-              <span className="text-[10px] font-bold text-zinc-600 uppercase bg-white/5 px-2 py-1 rounded border border-white/5">Coming Soon</span>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-4 bg-zinc-800 rounded-full relative">
+                  <div className="absolute left-1 top-1 w-2 h-2 bg-zinc-600 rounded-full" />
+                </div>
+                <span className="text-[8px] font-bold text-zinc-600 uppercase">Off</span>
+              </div>
             </div>
             <div className="h-px bg-white/5" />
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-white">Appearance</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Light / dark mode toggle</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Currently locked to Dark Mode</p>
               </div>
-              <span className="text-[10px] font-bold text-zinc-600 uppercase bg-white/5 px-2 py-1 rounded border border-white/5">Coming Soon</span>
+              <span className="text-[10px] font-bold text-indigo-400 uppercase bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">Dark Only</span>
             </div>
           </div>
         </div>
