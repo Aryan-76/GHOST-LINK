@@ -6,20 +6,9 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Phase 3: Primitives
+    // Helpers
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isEmailVerified() {
-      // In many MVPs we might not strictly enforce email verification if not enabled in Firebase
-      // But for production quality we should check if it's expected.
-      // Given the requirement "production-quality", I'll keep it but ensure it's not blocking if not needed.
-      return isSignedIn();
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128;
     }
 
     function incoming() {
@@ -30,94 +19,61 @@ service cloud.firestore {
       return resource.data;
     }
 
-    function isOwner(ownerId) {
-      return isSignedIn() && request.auth.uid == ownerId;
-    }
-
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // 1. User Rules
-    function isValidUser(data) {
-      return data.userId is string && data.userId == request.auth.uid &&
-             data.email is string && data.email.size() <= 100 &&
-             data.displayName is string && data.displayName.size() <= 100 &&
-             data.role in ['admin', 'user'] &&
-             data.avatarUrl is string &&
-             data.updatedAt is timestamp &&
-             data.createdAt is timestamp;
-    }
-
     match /users/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
-      allow create: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming()) && incoming().role == 'user';
+      allow create: if isSignedIn() && userId == request.auth.uid &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().role == 'user';
       allow update: if isSignedIn() && userId == request.auth.uid &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'status', 'avatarUrl', 'updatedAt']) &&
+                    incoming().userId == request.auth.uid &&
                     incoming().updatedAt == request.time;
 
-      // Sub-collection: Documents
       match /documents/{docId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
     }
 
     // 2. Project Rules
-    function isValidProject(data) {
-      return data.title is string && data.title.size() <= 100 &&
-             data.status in ['active', 'planned', 'archived', 'completed'] &&
-             data.ownerId is string &&
-             data.members is list && data.members.size() <= 20 &&
-             data.createdAt is timestamp &&
-             data.updatedAt is timestamp;
-    }
-
     match /projects/{projectId} {
       allow read: if isSignedIn() && (request.auth.uid == existing().ownerId || request.auth.uid in existing().members || isAdmin());
       allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || request.auth.uid in resource.data.members);
       
-      allow create: if isSignedIn() && isValidProject(incoming()) &&
-                    incoming().createdAt == request.time && incoming().ownerId == request.auth.uid;
+      allow create: if isSignedIn() &&
+                    incoming().ownerId == request.auth.uid &&
+                    incoming().createdAt == request.time;
       
       allow update: if isSignedIn() && (
-        (existing().status != 'completed' && existing().status != 'archived' && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'members', 'status', 'updatedAt'])) ||
+        (request.auth.uid == existing().ownerId || request.auth.uid in existing().members) ||
         isAdmin()
-      ) && incoming().updatedAt == request.time && incoming().ownerId == existing().ownerId;
+      ) && incoming().updatedAt == request.time;
 
       allow delete: if isAdmin() || (isSignedIn() && existing().ownerId == request.auth.uid);
     }
 
     // 3. Activity Rules
-    function isValidActivity(data) {
-      return data.title is string && data.title.size() <= 200 &&
-             data.type in ['edit', 'comment', 'complete', 'alert'] &&
-             data.userId == request.auth.uid &&
-             data.timestamp is timestamp;
-    }
-
     match /activities/{activityId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidActivity(incoming()) && incoming().timestamp == request.time;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && incoming().timestamp == request.time;
     }
 
     // 4. Chat Rules
-    function isValidMessage(data) {
-      return data.text is string && data.text.size() <= 2000 &&
-             data.userId is string &&
-             data.userDisplayName is string && data.userDisplayName.size() <= 100 &&
-             data.isAI is bool &&
-             data.timestamp is timestamp;
-    }
-
     match /channels/{channelId}/messages/{messageId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidMessage(incoming()) &&
+      allow create: if isSignedIn() &&
                     (incoming().userId == request.auth.uid || incoming().userId == 'ghost-assistant') &&
                     incoming().timestamp == request.time;
       allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // 5. Admins Collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && request.auth.uid == adminId;
     }
   }
 }

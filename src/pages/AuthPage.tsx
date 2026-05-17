@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, Mail, Lock, User, Layout } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
@@ -26,13 +26,16 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoading: isAuthLoading } = useAuthStore();
+
+  const from = (location.state as any)?.from?.pathname || "/workspace";
 
   React.useEffect(() => {
     if (!isAuthLoading && user) {
-      navigate('/workspace', { replace: true });
+      navigate(from, { replace: true });
     }
-  }, [user, isAuthLoading, navigate]);
+  }, [user, isAuthLoading, navigate, from]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
