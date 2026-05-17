@@ -18,6 +18,8 @@ import { db } from '../lib/firebase';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { Project, Activity as ActivityType } from '../types';
 import { useAuthStore } from '../store/authStore';
+import { ProjectCard } from '../components/common/ProjectCard';
+import { ActivityItem } from '../components/common/ActivityItem';
 
 const StatCard = React.memo(({ label, value, icon: Icon, delay }: any) => (
   <motion.div
@@ -36,55 +38,6 @@ const StatCard = React.memo(({ label, value, icon: Icon, delay }: any) => (
   </motion.div>
 ));
 
-const ProjectCard = React.memo(({ title, status, members, description, delay }: any) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.3 }}
-    className="bg-[#101116] border border-white/5 p-5 rounded-xl hover:border-white/10 transition-all flex flex-col h-full"
-  >
-    <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-3">
-      <h4 className="text-sm font-semibold text-zinc-100 tracking-tight line-clamp-1">{title}</h4>
-      <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${
-        status === 'active' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-zinc-800 text-zinc-500 border-white/5'
-      }`}>
-        {status}
-      </span>
-    </div>
-    <p className="text-[11px] text-zinc-500 mb-6 line-clamp-3 leading-relaxed flex-grow">{description || 'No description provided.'}</p>
-    <div className="flex items-center justify-between mt-auto pt-4">
-      <div className="flex -space-x-1.5">
-        {(members || []).slice(0, 4).map((m: string, i: number) => (
-          <div key={i} className="w-6 h-6 rounded bg-zinc-800 border border-[#101116] flex items-center justify-center text-[8px] text-zinc-500 font-bold uppercase">
-            {m[0]}
-          </div>
-        ))}
-        {members && members.length > 4 && (
-          <div className="w-6 h-6 rounded bg-zinc-900 border border-[#101116] flex items-center justify-center text-[8px] text-zinc-600 font-bold">
-            +{members.length - 4}
-          </div>
-        )}
-      </div>
-      <ChevronRight size={14} className="text-zinc-700" />
-    </div>
-  </motion.div>
-));
-
-const ActivityItem = React.memo(({ title, time, type }: { title: string; time: string; type: ActivityType['type'] }) => (
-  <div className="flex items-center gap-4 group p-2 rounded-lg hover:bg-white/[0.03] transition-all">
-    <div className={`w-8 h-8 rounded bg-[#101116] border border-white/5 flex items-center justify-center flex-shrink-0 ${
-      type === 'edit' ? 'text-indigo-400' :
-      type === 'comment' ? 'text-amber-400' :
-      type === 'alert' ? 'text-red-400' : 'text-emerald-400'
-    }`}>
-      {type === 'edit' ? <FileText size={14} /> : type === 'comment' ? <MessageSquare size={14} /> : type === 'alert' ? <Zap size={14} /> : <CheckCircle2 size={14} />}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-medium text-zinc-300 truncate">{title}</p>
-      <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-tight">{time}</p>
-    </div>
-  </div>
-));
 
 function CreateProjectModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { user } = useAuthStore();
@@ -107,6 +60,13 @@ function CreateProjectModal({ onClose, onCreated }: { onClose: () => void; onCre
         members: [user.uid],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+      });
+
+      await addDoc(collection(db, 'activities'), {
+        title: `Created new project: ${title.trim()}`,
+        type: 'edit',
+        userId: user.uid,
+        timestamp: serverTimestamp()
       });
       onCreated();
       onClose();

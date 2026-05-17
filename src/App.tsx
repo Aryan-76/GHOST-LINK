@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Shell } from './components/layout/Shell.tsx';
 import { WorkspaceProvider } from './hooks/useWorkspace.tsx';
@@ -15,7 +15,6 @@ const AICollabWorkspace = lazy(() => import('./pages/AICollabWorkspace.tsx'));
 const CommandCenter = lazy(() => import('./pages/CommandCenter.tsx'));
 const SpatialThreads = lazy(() => import('./pages/SpatialThreads.tsx'));
 const UserProfile = lazy(() => import('./pages/UserProfile.tsx'));
-const MobileWorkspace = lazy(() => import('./pages/MobileWorkspace.tsx'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,9 +37,10 @@ import { useAuthStore } from './store/authStore.ts';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuthStore();
+  const location = useLocation();
   
   if (isLoading) return <PageLoader />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
   
   return <>{children}</>;
 };
@@ -65,9 +65,6 @@ export default function App() {
                 <Route path="/threads" element={<ProtectedRoute><Shell><SpatialThreads /></Shell></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Shell><UserProfile /></Shell></ProtectedRoute>} />
                 
-                {/* Specialized Views */}
-                <Route path="/mobile" element={<ProtectedRoute><MobileWorkspace /></ProtectedRoute>} />
-
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

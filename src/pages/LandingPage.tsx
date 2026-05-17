@@ -75,8 +75,8 @@ export default function LandingPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Public Beta v1.0 is live</span>
             </div>
-            <h1 className="text-5xl md:text-8xl font-bold text-white tracking-tight mb-8 leading-[1.1]">
-              The intelligent workspace <br />
+            <h1 className="text-4xl sm:text-5xl md:text-8xl font-bold text-white tracking-tight mb-8 leading-[1.1]">
+              The intelligent workspace <br className="hidden sm:block" />
               <span className="text-zinc-500">for modern teams.</span>
             </h1>
             <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
@@ -100,7 +100,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2 }}
-            className="relative max-w-5xl mx-auto"
+            className="relative max-w-5xl mx-auto hidden sm:block"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-[2rem] blur-xl opacity-50" />
             <div className="relative bg-[#0A0B0E] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
